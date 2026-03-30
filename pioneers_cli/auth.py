@@ -20,7 +20,7 @@ from pioneers_cli.config import (
 console = Console()
 
 # GitHub OAuth App (public client ID — safe to embed)
-GITHUB_CLIENT_ID = "Ov23liPioneersCliDev"
+GITHUB_CLIENT_ID = "Ov23liIuROAFVHawEcCE"
 GITHUB_DEVICE_URL = "https://github.com/login/device/code"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_USER_URL = "https://api.github.com/user"
