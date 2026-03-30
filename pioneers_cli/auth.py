@@ -107,14 +107,26 @@ def device_flow_login() -> Credentials | None:
             user_resp.raise_for_status()
             user_data = user_resp.json()
 
-            creds = Credentials(
-                access_token=access_token,
-                username=user_data.get("login", "unknown"),
-                email=user_data.get("email"),
-            )
+            username = user_data.get("login", "unknown")
+            email = user_data.get("email")
 
-            # Register with Pioneers API (best-effort)
-            _register_with_api(creds)
+            # Exchange GitHub token for Pioneers API JWT
+            api_token = _exchange_github_token(access_token)
+            if api_token:
+                creds = Credentials(
+                    access_token=api_token,
+                    username=username,
+                    email=email,
+                )
+            else:
+                # Fallback: store GitHub token (cloud sync won't work)
+                console.print("[yellow]Warning: Could not connect to Pioneers API. "
+                              "Cloud features may be limited.[/yellow]")
+                creds = Credentials(
+                    access_token=access_token,
+                    username=username,
+                    email=email,
+                )
 
             save_credentials(creds)
             return creds
@@ -127,17 +139,19 @@ def device_flow_login() -> Credentials | None:
         return None
 
 
-def _register_with_api(creds: Credentials) -> None:
-    """Register the user with the Pioneers API (best-effort, non-blocking)."""
+def _exchange_github_token(github_token: str) -> str | None:
+    """Exchange a GitHub token for a Pioneers API JWT. Returns JWT or None."""
     try:
-        httpx.post(
-            f"{API_BASE_URL}/auth/register",
-            json={"username": creds.username, "email": creds.email},
-            headers={"Authorization": f"Bearer {creds.access_token}"},
-            timeout=5,
+        resp = httpx.post(
+            f"{API_BASE_URL}/auth/token/github",
+            json={"github_token": github_token},
+            timeout=10,
         )
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("access_token")
     except httpx.HTTPError:
-        pass  # API might not be live yet — that's fine
+        return None
 
 
 def get_current_user() -> Credentials | None:
